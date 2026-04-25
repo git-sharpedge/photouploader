@@ -1,0 +1,7 @@
+# Sensitive and generated directories (ignore all contents)
+/secrets/
+/secrets/**
+/vendor/
+/vendor/**
+/foton/
+/foton/**

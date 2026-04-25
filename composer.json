@@ -1,0 +1,8 @@
+{
+    "require": {
+        "google/apiclient": "*"
+    },
+    "config": {
+        "preferred-install": "dist"
+    }
+}
