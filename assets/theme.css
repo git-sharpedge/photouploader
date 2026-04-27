@@ -292,6 +292,15 @@ textarea {
     opacity: 0.85;
 }
 
+.footer-credit a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+.footer-credit a:hover {
+    color: #7f6a66;
+}
+
 .lightbox[hidden] {
     display: none;
 }

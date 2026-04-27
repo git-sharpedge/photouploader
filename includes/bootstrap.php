@@ -90,6 +90,7 @@ function app_t(string $key, string $lang): string
             'gallery_link' => 'Visa galleri',
             'upload_link' => 'Ladda upp fler bilder',
             'footer_credit' => 'Skapad av Sharp Edge AB',
+            'footer_contact' => 'Kontakt',
         ],
         'fr' => [
             'site_title_upload' => 'Télécharger des photos',
@@ -140,6 +141,7 @@ function app_t(string $key, string $lang): string
             'gallery_link' => 'Voir la galerie',
             'upload_link' => 'Télécharger plus de photos',
             'footer_credit' => 'Créé par Sharp Edge AB',
+            'footer_contact' => 'Contact',
         ],
         'en' => [
             'site_title_upload' => 'Upload photos',
@@ -190,6 +192,7 @@ function app_t(string $key, string $lang): string
             'gallery_link' => 'View gallery',
             'upload_link' => 'Upload more photos',
             'footer_credit' => 'Created by Sharp Edge AB',
+            'footer_contact' => 'Contact',
         ],
     ];
 

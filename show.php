@@ -216,7 +216,10 @@ try {
                 </div>
             </div>
         <?php endif; ?>
-        <p class="footer-credit"><?= app_h(app_t('footer_credit', $lang)) ?></p>
+        <p class="footer-credit">
+            <?= app_h(app_t('footer_credit', $lang)) ?><br>
+            <a href="mailto:info.photouploader@sharpedge.se"><?= app_h(app_t('footer_contact', $lang)) ?>: info.photouploader@sharpedge.se</a>
+        </p>
     </div>
     <script>
         (function () {
