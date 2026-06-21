@@ -22,7 +22,7 @@ $baseParams = ['event' => $event, 'exp' => $exp, 'sig' => $sig, 'sort' => $sort,
 
 try {
     $pdo = app_pdo();
-    $eventStmt = $pdo->prepare('SELECT id, name, slug FROM events WHERE slug = :slug AND active = 1 LIMIT 1');
+    $eventStmt = $pdo->prepare('SELECT id, name, slug, theme FROM events WHERE slug = :slug AND active = 1 LIMIT 1');
     $eventStmt->execute(['slug' => $event]);
     $eventRow = $eventStmt->fetch();
     if (!$eventRow) {
@@ -31,6 +31,7 @@ try {
     }
     $eventPk = (int)$eventRow['id'];
     $eventTitle = trim((string)($eventRow['name'] ?? ''));
+    $eventTheme = app_sanitize_theme_key((string)($eventRow['theme'] ?? 'default'));
 
     $uploaderListStmt = $pdo->prepare(
         'SELECT DISTINCT u.uploader_name
@@ -70,7 +71,7 @@ try {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= app_h(app_t('site_title_show', $lang)) ?></title>
-    <link rel="stylesheet" href="assets/theme.css">
+<?php app_render_stylesheets($eventTheme, $event); ?>
 </head>
 <body>
     <div class="wrap">

@@ -11,6 +11,7 @@ $okMessage = '';
 $errorMessage = '';
 $eventPk = 0;
 $eventTitle = '';
+$eventTheme = 'default';
 $uploaderNameInput = trim((string)($_COOKIE['photo_uploader_name'] ?? ''));
 
 function app_extract_captured_at(?string $tmpPath): ?string
@@ -50,7 +51,7 @@ function app_extract_captured_at(?string $tmpPath): ?string
 
 try {
     $pdo = app_pdo();
-    $eventStmt = $pdo->prepare('SELECT id, name, slug FROM events WHERE slug = :slug AND active = 1 LIMIT 1');
+    $eventStmt = $pdo->prepare('SELECT id, name, slug, theme FROM events WHERE slug = :slug AND active = 1 LIMIT 1');
     $eventStmt->execute(['slug' => $event]);
     $eventRow = $eventStmt->fetch();
     if (!$eventRow) {
@@ -59,6 +60,7 @@ try {
     }
     $eventPk = (int)$eventRow['id'];
     $eventTitle = trim((string)($eventRow['name'] ?? ''));
+    $eventTheme = app_sanitize_theme_key((string)($eventRow['theme'] ?? 'default'));
 } catch (Throwable $e) {
     http_response_code(500);
     exit('Server error while loading event.');
@@ -178,7 +180,7 @@ $galleryUrl = app_build_url('show.php', $baseParams + ['lang' => $lang]);
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= app_h(app_t('site_title_upload', $lang)) ?></title>
-    <link rel="stylesheet" href="assets/theme.css">
+<?php app_render_stylesheets($eventTheme, $event); ?>
 </head>
 <body>
     <div class="wrap">

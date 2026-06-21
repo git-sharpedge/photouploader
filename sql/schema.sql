@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS events (
     name VARCHAR(150) NOT NULL,
     slug VARCHAR(120) NOT NULL UNIQUE,
     active TINYINT(1) NOT NULL DEFAULT 1,
+    theme VARCHAR(50) NOT NULL DEFAULT 'default',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -24,11 +25,13 @@ CREATE TABLE IF NOT EXISTS uploads (
     INDEX idx_uploads_event_uploader (event_id, uploader_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO events (name, slug, active)
-VALUES ('Amina & Victor - Marrakech 2026', 'brollop-2026', 1)
-ON DUPLICATE KEY UPDATE name = VALUES(name), active = VALUES(active);
+INSERT INTO events (name, slug, active, theme)
+VALUES ('Amina & Victor - Marrakech 2026', 'brollop-2026', 1, 'marrakech')
+ON DUPLICATE KEY UPDATE name = VALUES(name), active = VALUES(active), theme = VALUES(theme);
 
 -- For existing installations, run:
+-- ALTER TABLE events ADD COLUMN theme VARCHAR(50) NOT NULL DEFAULT 'default' AFTER active;
+-- UPDATE events SET theme = 'marrakech' WHERE slug = 'brollop-2026' AND theme = 'default';
 -- ALTER TABLE uploads ADD COLUMN captured_at DATETIME NULL AFTER uploader_ip;
 -- CREATE INDEX idx_uploads_event_captured ON uploads(event_id, captured_at);
 -- ALTER TABLE uploads ADD COLUMN uploader_name VARCHAR(100) NULL AFTER comment;

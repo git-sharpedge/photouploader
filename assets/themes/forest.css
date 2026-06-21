@@ -1,0 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=Nunito+Sans:wght@400;500;600&display=swap');
+
+/* Grönt, naturnära tema. */
+:root {
+    --bg: #eef3ea;
+    --bg-mid: #f7faf4;
+    --bg-end: #e2ead9;
+    --paper: #f8fbf5;
+    --card: #ffffff;
+    --text: #243024;
+    --muted: #5f6f5d;
+    --accent: #5f8a5a;
+    --accent-dark: #4d7449;
+    --line: #d4e0cc;
+    --input-border: #c2d4b8;
+    --hero-shadow: rgba(77, 116, 73, 0.08);
+    --panel-shadow: rgba(77, 116, 73, 0.1);
+    --font-heading: 'Lora', Georgia, serif;
+    --font-body: 'Nunito Sans', Arial, sans-serif;
+}

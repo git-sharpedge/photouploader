@@ -1,0 +1,18 @@
+/* Varmt bröllopstema (samma som standard). */
+:root {
+    --bg: #f8f1eb;
+    --bg-mid: #fff7f1;
+    --bg-end: #f4e7de;
+    --paper: #fffaf6;
+    --card: #ffffff;
+    --text: #2f2a2a;
+    --muted: #756768;
+    --accent: #c77f7d;
+    --accent-dark: #a96564;
+    --line: #ead9cf;
+    --input-border: #dbc8bd;
+    --hero-shadow: rgba(96, 55, 44, 0.07);
+    --panel-shadow: rgba(125, 90, 78, 0.08);
+    --font-heading: 'Playfair Display', Georgia, serif;
+    --font-body: 'Inter', Arial, sans-serif;
+}

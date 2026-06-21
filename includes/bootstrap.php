@@ -252,3 +252,38 @@ function app_build_url(string $path, array $params): string
 {
     return $path . '?' . http_build_query($params);
 }
+
+function app_sanitize_theme_key(string $value): string
+{
+    $safe = preg_replace('/[^a-zA-Z0-9_-]/', '', $value);
+    return $safe !== '' ? $safe : 'default';
+}
+
+function app_theme_stylesheet_hrefs(string $theme, string $eventSlug): array
+{
+    $hrefs = [];
+    $theme = app_sanitize_theme_key($theme);
+    $slug = app_sanitize_theme_key($eventSlug);
+
+    if ($theme !== 'default') {
+        $themePath = __DIR__ . '/../assets/themes/' . $theme . '.css';
+        if (is_file($themePath)) {
+            $hrefs[] = 'assets/themes/' . $theme . '.css';
+        }
+    }
+
+    $eventThemePath = __DIR__ . '/../assets/themes/events/' . $slug . '.css';
+    if (is_file($eventThemePath)) {
+        $hrefs[] = 'assets/themes/events/' . $slug . '.css';
+    }
+
+    return $hrefs;
+}
+
+function app_render_stylesheets(string $theme, string $eventSlug): void
+{
+    echo '    <link rel="stylesheet" href="assets/theme.css">' . PHP_EOL;
+    foreach (app_theme_stylesheet_hrefs($theme, $eventSlug) as $href) {
+        echo '    <link rel="stylesheet" href="' . app_h($href) . '">' . PHP_EOL;
+    }
+}

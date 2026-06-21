@@ -1,0 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Source+Sans+3:wght@400;500;600&display=swap');
+
+/* Kallt, ljust tema för sommar/hav. */
+:root {
+    --bg: #edf4f8;
+    --bg-mid: #f7fbfd;
+    --bg-end: #dfeaf1;
+    --paper: #f8fcff;
+    --card: #ffffff;
+    --text: #1f2f3a;
+    --muted: #5d7280;
+    --accent: #3f7f9f;
+    --accent-dark: #2f6784;
+    --line: #cfe0ea;
+    --input-border: #b9d0de;
+    --hero-shadow: rgba(47, 103, 132, 0.08);
+    --panel-shadow: rgba(47, 103, 132, 0.1);
+    --font-heading: 'Cormorant Garamond', Georgia, serif;
+    --font-body: 'Source Sans 3', Arial, sans-serif;
+}

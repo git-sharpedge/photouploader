@@ -9,6 +9,7 @@ Den här tjänsten låter gäster ladda upp bilder (med kommentar) via en signer
 - Galleri med kort, stor bildvisning och bläddring
 - Sortering och filtrering i galleriet
 - Flerspråk: svenska, franska, engelska
+- Tema per event (färger, typsnitt)
 - Signerade länkar med utgångstid (för att minska obehörig åtkomst)
 
 ## Viktiga filer
@@ -18,6 +19,8 @@ Den här tjänsten låter gäster ladda upp bilder (med kommentar) via en signer
 - `generate_link.php` - skapar signerade länkar
 - `includes/bootstrap.php` - config + språk + helpers
 - `includes/drive.php` - Google Drive-koppling
+- `assets/theme.css` - grundlayout och CSS-variabler
+- `assets/themes/` - färdiga teman + `events/` för unika stilar per slug
 - `secrets/config.local.php` - miljövariabler/hemligheter
 
 ## Hur man skapar en åtkomstlänk
@@ -62,16 +65,143 @@ Internt räknas:
 
 När `exp` har passerat blir länken ogiltig (403).
 
-## Event
+## Sätt upp nytt event
 
-Event identifieras av `events.slug` i databasen.
-Eventets namn (`events.name`) visas i gränssnittet.
+Ett nytt event kräver **inte** ny config i `secrets/config.local.php`. Google Drive, OAuth och `TOKEN_SALT` är gemensamma för alla event.
+
+Det som behövs är:
+
+1. en rad i databasen (`events`)
+2. signerade länkar/QR-koder genererade med rätt `event`-slug
+
+### Steg 1: Skapa event i databasen
+
+Lägg till event i tabellen `events`:
+
+```sql
+INSERT INTO events (name, slug, active, theme)
+VALUES ('Bröllop Ingmarö 2026', 'wedding_ingmarso_2026', 1, 'ocean');
+```
+
+Fält:
+
+- `name` – titel som visas i gränssnittet (t.ex. "Bröllop Ingmarö 2026")
+- `slug` – tekniskt id i URL/länkar (t.ex. `wedding_ingmarso_2026`)
+  - använd små bokstäver, siffror, bindestreck eller understreck
+  - måste vara unikt
+- `active` – `1` = aktivt, `0` = inaktiverat (uppladdning/galleri nekas)
+- `theme` – visuellt tema (se nedan)
+
+### Steg 1b: Välj tema (valfritt)
+
+Varje event kan ha eget utseende via kolumnen `events.theme`.
+
+**Färdiga teman** i `assets/themes/`:
+
+| theme | Beskrivning |
+|-------|-------------|
+| `default` | Standard (inga extra färger laddas) |
+| `marrakech` | Varmt bröllopstema (rosa/beige) |
+| `ocean` | Kallt, ljust blått tema |
+| `forest` | Grönt, naturnära tema |
+
+Exempel:
+
+```sql
+INSERT INTO events (name, slug, active, theme)
+VALUES ('Bröllop Ingmarö 2026', 'wedding_ingmarso_2026', 1, 'forest');
+```
+
+**Eget utseende för ett specifikt event** (utan att skapa delat tema):
+
+1. Kopiera `assets/themes/_template.css`
+2. Spara som `assets/themes/events/DIN-SLUG.css` (samma namn som `slug`)
+3. Justera CSS-variablerna i filen
+4. Sätt `theme = 'default'` i databasen (event-filen laddas ändå automatiskt)
+
+Både preset-tema och event-specifik fil kan laddas samtidigt. Event-filen skrivs över preset om samma variabel sätts i båda.
+
+Byt tema på befintligt event:
+
+```sql
+UPDATE events SET theme = 'ocean' WHERE slug = 'wedding_ingmarso_2026';
+```
+
+Tillgängliga CSS-variabler att styra finns i `assets/theme.css` under `:root` (t.ex. `--accent`, `--bg`, `--font-heading`).
+
+### Steg 2: Google Drive-mapp (automatiskt)
+
+Du behöver **inte** skapa en lokal mapp under `foton/` för att uppladdning ska fungera. Den mappen används inte av tjänsten.
+
+Vid första uppladdning skapas automatiskt en undermapp i Google Drive under `DRIVE_PARENT_FOLDER_ID` (från config), med samma namn som eventets `slug`.
+
+Exempel: slug `wedding_ingmarso_2026` → Drive-mapp `wedding_ingmarso_2026` under huvudmappen.
+
+Krav:
+
+- OAuth-uppgifterna i `secrets/config.local.php` måste vara giltiga
+- `DRIVE_PARENT_FOLDER_ID` ska peka på rätt huvudmapp i Drive
+
+### Steg 3: Generera länkar för gäster
+
+Byt ut `event=` till din nya slug.
+
+Uppladdning:
+
+```text
+https://photouploader.sharpedge.se/generate_link.php?event=wedding_ingmarso_2026&hours=48&target=upload&lang=sv
+```
+
+Galleri:
+
+```text
+https://photouploader.sharpedge.se/generate_link.php?event=wedding_ingmarso_2026&hours=48&target=show&lang=sv
+```
+
+Använd den URL som returneras som QR-kod eller direktlänk till gästerna.
+
+### Steg 4: Testa
+
+1. Öppna uppladdningslänken
+2. Fyll i namn, välj bild(er), ladda upp
+3. Öppna gallerilänken och kontrollera att bilden syns med kommentar
+
+### Checklista för nytt event
+
+| Steg | Vad | Var |
+|------|-----|-----|
+| 1 | Skapa event-rad | MariaDB `events` |
+| 1b | Välj tema (valfritt) | `events.theme` + ev. `assets/themes/events/` |
+| 2 | Verifiera Drive-config | `secrets/config.local.php` |
+| 3 | Generera upload-länk | `generate_link.php` |
+| 4 | Generera show-länk | `generate_link.php` |
+| 5 | Testa uppladdning + galleri | Webbläsare |
+
+### Inaktivera eller byta namn på event
+
+```sql
+-- Inaktivera
+UPDATE events SET active = 0 WHERE slug = 'wedding_ingmarso_2026';
+
+-- Byt visningstitel
+UPDATE events SET name = 'Ny titel' WHERE slug = 'wedding_ingmarso_2026';
+```
+
+## Event (tekniskt)
+
+Event identifieras av `events.slug` i URL-parametern `event`.
+Eventets namn (`events.name`) visas i gränssnittet som "Event: ...".
 
 ## Databas - uppdateringar för nuvarande version
 
 För befintlig installation, kör dessa migrationer:
 
 ```sql
+ALTER TABLE events
+  ADD COLUMN IF NOT EXISTS theme VARCHAR(50) NOT NULL DEFAULT 'default' AFTER active;
+
+UPDATE events SET theme = 'marrakech' WHERE slug = 'brollop-2026' AND theme = 'default';
+
 ALTER TABLE uploads
   ADD COLUMN IF NOT EXISTS captured_at DATETIME NULL AFTER uploader_ip;
 

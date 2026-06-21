@@ -2,6 +2,8 @@
 
 :root {
     --bg: #f8f1eb;
+    --bg-mid: #fff7f1;
+    --bg-end: #f4e7de;
     --paper: #fffaf6;
     --card: #ffffff;
     --text: #2f2a2a;
@@ -9,6 +11,11 @@
     --accent: #c77f7d;
     --accent-dark: #a96564;
     --line: #ead9cf;
+    --input-border: #dbc8bd;
+    --hero-shadow: rgba(96, 55, 44, 0.07);
+    --panel-shadow: rgba(125, 90, 78, 0.08);
+    --font-heading: 'Playfair Display', Georgia, serif;
+    --font-body: 'Inter', Arial, sans-serif;
 }
 
 * {
@@ -17,9 +24,9 @@
 
 body {
     margin: 0;
-    background: radial-gradient(circle at top, #fff7f1 0%, var(--bg) 55%, #f4e7de 100%);
+    background: radial-gradient(circle at top, var(--bg-mid) 0%, var(--bg) 55%, var(--bg-end) 100%);
     color: var(--text);
-    font-family: 'Inter', Arial, sans-serif;
+    font-family: var(--font-body);
 }
 
 .wrap {
@@ -34,12 +41,12 @@ body {
     border-radius: 18px;
     padding: 22px;
     margin-bottom: 18px;
-    box-shadow: 0 10px 30px rgba(96, 55, 44, 0.07);
+    box-shadow: 0 10px 30px var(--hero-shadow);
 }
 
 h1 {
     margin: 0 0 8px;
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: var(--font-heading);
     font-weight: 700;
     letter-spacing: 0.2px;
 }
@@ -68,7 +75,7 @@ h1 {
 }
 
 .sort-row select {
-    border: 1px solid #dbc8bd;
+    border: 1px solid var(--input-border);
     border-radius: 12px;
     padding: 9px 12px;
     background: #fff;
@@ -115,7 +122,7 @@ input[type="submit"]:hover {
     border: 1px solid var(--line);
     border-radius: 18px;
     padding: 18px;
-    box-shadow: 0 8px 24px rgba(125, 90, 78, 0.08);
+    box-shadow: 0 8px 24px var(--panel-shadow);
 }
 
 label {
@@ -129,7 +136,7 @@ textarea,
 input[type="text"],
 input[type="file"] {
     width: 100%;
-    border: 1px solid #dbc8bd;
+    border: 1px solid var(--input-border);
     border-radius: 12px;
     padding: 10px;
     background: #fff;
@@ -137,7 +144,7 @@ input[type="file"] {
 }
 
 .file-picker {
-    border: 1px solid #dbc8bd;
+    border: 1px solid var(--input-border);
     border-radius: 12px;
     padding: 12px;
     background: #fff;
