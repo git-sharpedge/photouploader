@@ -9,7 +9,7 @@ function drive_bootstrap_google_sdk(): void
         return;
     }
 
-    $autoload = __DIR__ . '/../vendor/autoload.php';
+    $autoload = APP_PRIVATE_ROOT . '/vendor/autoload.php';
     if (!is_file($autoload)) {
         throw new RuntimeException('Missing vendor/autoload.php. Run composer install.');
     }

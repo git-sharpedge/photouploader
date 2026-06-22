@@ -1,7 +1,13 @@
 <?php
 declare(strict_types=1);
 
-$configPath = __DIR__ . '/../secrets/config.local.php';
+require_once __DIR__ . '/paths.php';
+
+if (!defined('APP_PRIVATE_ROOT')) {
+    app_resolve_paths(dirname(__DIR__));
+}
+
+$configPath = APP_PRIVATE_ROOT . '/secrets/config.local.php';
 if (is_file($configPath)) {
     $rawConfig = file_get_contents($configPath);
     if (is_string($rawConfig) && $rawConfig !== '') {
@@ -266,13 +272,13 @@ function app_theme_stylesheet_hrefs(string $theme, string $eventSlug): array
     $slug = app_sanitize_theme_key($eventSlug);
 
     if ($theme !== 'default') {
-        $themePath = __DIR__ . '/../assets/themes/' . $theme . '.css';
+        $themePath = APP_PUBLIC_ROOT . '/assets/themes/' . $theme . '.css';
         if (is_file($themePath)) {
             $hrefs[] = 'assets/themes/' . $theme . '.css';
         }
     }
 
-    $eventThemePath = __DIR__ . '/../assets/themes/events/' . $slug . '.css';
+    $eventThemePath = APP_PUBLIC_ROOT . '/assets/themes/events/' . $slug . '.css';
     if (is_file($eventThemePath)) {
         $hrefs[] = 'assets/themes/events/' . $slug . '.css';
     }

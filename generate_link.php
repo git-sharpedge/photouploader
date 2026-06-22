@@ -1,7 +1,9 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/includes/bootstrap.php';
+require_once __DIR__ . '/includes/paths.php';
+app_require_paths(__DIR__);
+require_once APP_PRIVATE_ROOT . '/includes/bootstrap.php';
 
 $event = (string)($_GET['event'] ?? 'brollop-2026');
 $hours = (int)($_GET['hours'] ?? 48);

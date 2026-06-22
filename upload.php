@@ -1,8 +1,9 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/includes/bootstrap.php';
-require_once __DIR__ . '/includes/drive.php';
+require_once __DIR__ . '/app_paths.php';
+require_once APP_PRIVATE_ROOT . '/includes/bootstrap.php';
+require_once APP_PRIVATE_ROOT . '/includes/drive.php';
 
 [$event, $exp, $sig] = app_verify_signed_access();
 $lang = app_get_lang();
