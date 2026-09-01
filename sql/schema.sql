@@ -18,11 +18,14 @@ CREATE TABLE IF NOT EXISTS uploads (
     uploader_name VARCHAR(100) NULL,
     uploader_ip VARCHAR(45) NULL,
     captured_at DATETIME NULL,
+    active TINYINT(1) NOT NULL DEFAULT 1,
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_uploads_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
     INDEX idx_uploads_event_created (event_id, created_at),
     INDEX idx_uploads_event_captured (event_id, captured_at),
-    INDEX idx_uploads_event_uploader (event_id, uploader_name)
+    INDEX idx_uploads_event_uploader (event_id, uploader_name),
+    INDEX idx_uploads_event_active (event_id, active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO events (name, slug, active, theme)
@@ -36,3 +39,6 @@ ON DUPLICATE KEY UPDATE name = VALUES(name), active = VALUES(active), theme = VA
 -- CREATE INDEX idx_uploads_event_captured ON uploads(event_id, captured_at);
 -- ALTER TABLE uploads ADD COLUMN uploader_name VARCHAR(100) NULL AFTER comment;
 -- CREATE INDEX idx_uploads_event_uploader ON uploads(event_id, uploader_name);
+-- ALTER TABLE uploads ADD COLUMN active TINYINT(1) NOT NULL DEFAULT 1 AFTER captured_at;
+-- ALTER TABLE uploads ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL AFTER active;
+-- CREATE INDEX idx_uploads_event_active ON uploads(event_id, active);

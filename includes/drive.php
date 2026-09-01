@@ -53,22 +53,17 @@ function drive_service(): Google\Service\Drive
     return new Google\Service\Drive(drive_get_client());
 }
 
-function drive_find_or_create_event_folder(Google\Service\Drive $drive, string $eventSlug): string
+function drive_find_or_create_subfolder(Google\Service\Drive $drive, string $parentId, string $folderName): string
 {
-    $parentId = app_env('DRIVE_PARENT_FOLDER_ID', '16Dc4DyflYLat0J9hLBCw0qMbmMkuQJIG');
-    if ($parentId === '') {
-        throw new RuntimeException('DRIVE_PARENT_FOLDER_ID is missing.');
-    }
-
-    $safeSlug = preg_replace('/[^a-zA-Z0-9_-]/', '-', $eventSlug);
-    $safeSlug = trim((string)$safeSlug, '-');
-    if ($safeSlug === '') {
-        $safeSlug = 'event';
+    $safeName = preg_replace('/[^a-zA-Z0-9 _-]/', '-', $folderName);
+    $safeName = trim((string)$safeName, '- ');
+    if ($safeName === '') {
+        $safeName = 'folder';
     }
 
     $query = sprintf(
         "name = '%s' and mimeType = 'application/vnd.google-apps.folder' and '%s' in parents and trashed = false",
-        str_replace("'", "\\'", $safeSlug),
+        str_replace("'", "\\'", $safeName),
         str_replace("'", "\\'", $parentId)
     );
 
@@ -85,7 +80,7 @@ function drive_find_or_create_event_folder(Google\Service\Drive $drive, string $
     }
 
     $folderMeta = new Google\Service\Drive\DriveFile([
-        'name' => $safeSlug,
+        'name' => $safeName,
         'mimeType' => 'application/vnd.google-apps.folder',
         'parents' => [$parentId],
     ]);
@@ -95,6 +90,53 @@ function drive_find_or_create_event_folder(Google\Service\Drive $drive, string $
     ]);
 
     return (string)$created->getId();
+}
+
+function drive_find_or_create_event_folder(Google\Service\Drive $drive, string $eventSlug): string
+{
+    $parentId = app_env('DRIVE_PARENT_FOLDER_ID', '16Dc4DyflYLat0J9hLBCw0qMbmMkuQJIG');
+    if ($parentId === '') {
+        throw new RuntimeException('DRIVE_PARENT_FOLDER_ID is missing.');
+    }
+
+    $safeSlug = preg_replace('/[^a-zA-Z0-9_-]/', '-', $eventSlug);
+    $safeSlug = trim((string)$safeSlug, '-');
+    if ($safeSlug === '') {
+        $safeSlug = 'event';
+    }
+
+    return drive_find_or_create_subfolder($drive, $parentId, $safeSlug);
+}
+
+function drive_find_or_create_event_trash_folder(Google\Service\Drive $drive, string $eventSlug): string
+{
+    $eventFolderId = drive_find_or_create_event_folder($drive, $eventSlug);
+    return drive_find_or_create_subfolder($drive, $eventFolderId, 'Trash');
+}
+
+function drive_move_file_to_event_trash(string $fileId, string $eventSlug): void
+{
+    if ($fileId === '' || $fileId === 'PENDING') {
+        throw new RuntimeException('Invalid Drive file id.');
+    }
+
+    $drive = drive_service();
+    $trashFolderId = drive_find_or_create_event_trash_folder($drive, $eventSlug);
+
+    $file = $drive->files->get($fileId, [
+        'fields' => 'parents',
+        'supportsAllDrives' => true,
+    ]);
+    $parents = $file->getParents();
+    if (!is_array($parents) || $parents === []) {
+        throw new RuntimeException('Could not resolve Drive file parents.');
+    }
+
+    $drive->files->update($fileId, new Google\Service\Drive\DriveFile(), [
+        'addParents' => $trashFolderId,
+        'removeParents' => implode(',', $parents),
+        'supportsAllDrives' => true,
+    ]);
 }
 
 function drive_upload_image(string $tmpPath, string $originalName, string $mimeType, string $eventSlug): string

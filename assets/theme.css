@@ -250,6 +250,28 @@ textarea {
     border: 1px solid var(--line);
     border-radius: 14px;
     overflow: hidden;
+    position: relative;
+}
+
+.card.is-duplicate {
+    border-color: #e8b86d;
+    box-shadow: 0 0 0 1px rgba(232, 184, 109, 0.35);
+}
+
+.duplicate-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 2;
+    margin: 0;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(142, 88, 12, 0.92);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    box-shadow: 0 4px 12px rgba(80, 45, 8, 0.25);
 }
 
 .card img {
@@ -277,6 +299,58 @@ textarea {
 
 .card-content {
     padding: 10px 12px 12px;
+}
+
+.card-actions {
+    margin-top: 10px;
+    position: relative;
+    z-index: 2;
+}
+
+.card-actions .btn {
+    position: relative;
+    z-index: 2;
+}
+
+button.btn-delete,
+a.btn-delete,
+.btn.btn-delete {
+    padding: 6px 11px;
+    font-size: 12px;
+    font-weight: 500;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    box-shadow: none;
+}
+
+button.btn-delete:hover,
+button.btn-delete:focus,
+a.btn-delete:hover,
+a.btn-delete:focus,
+.btn.btn-delete:hover,
+.btn.btn-delete:focus {
+    background: #faf6f3;
+    color: #8f5f5f;
+    border-color: #dbc8bd;
+}
+
+.lightbox-meta-right button.btn-delete {
+    padding: 7px 12px;
+    font-size: 12px;
+}
+
+a.btn.danger,
+button.btn.danger,
+.btn.danger {
+    background: #b54a4a;
+    color: #fff;
+}
+
+a.btn.danger:hover,
+button.btn.danger:hover,
+.btn.danger:hover {
+    background: #963f3f;
 }
 
 .comment {
@@ -431,4 +505,56 @@ textarea {
     to {
         transform: rotate(360deg);
     }
+}
+
+.delete-form {
+    display: none;
+}
+
+.confirm-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: none;
+}
+
+.confirm-modal.is-open {
+    display: block;
+}
+
+.confirm-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(23, 17, 16, 0.62);
+}
+
+.confirm-modal-content {
+    position: relative;
+    z-index: 1;
+    width: min(92vw, 420px);
+    margin: 18vh auto 0;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 18px 40px rgba(40, 24, 20, 0.18);
+}
+
+.confirm-modal-content h2 {
+    margin: 0 0 10px;
+    font-family: var(--font-heading);
+    font-size: 22px;
+}
+
+.confirm-modal-content p {
+    margin: 0 0 16px;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.confirm-modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
 }

@@ -20,6 +20,8 @@ if (!isset($allowedSort[$sort])) {
     $sort = 'uploaded_desc';
 }
 $baseParams = ['event' => $event, 'exp' => $exp, 'sig' => $sig, 'sort' => $sort, 'uploader' => $uploaderFilter];
+$deleteOkMessage = (string)($_GET['deleted'] ?? '') === '1' ? app_t('delete_success', $lang) : '';
+$deleteErrorMessage = (string)($_GET['delete_error'] ?? '') === '1' ? app_t('delete_failed', $lang) : '';
 
 try {
     $pdo = app_pdo();
@@ -37,20 +39,23 @@ try {
     $uploaderListStmt = $pdo->prepare(
         'SELECT DISTINCT u.uploader_name
          FROM uploads u
-         WHERE u.event_id = :event_id AND u.uploader_name IS NOT NULL AND u.uploader_name <> ""
+         WHERE u.event_id = :event_id AND u.active = 1
+           AND u.uploader_name IS NOT NULL AND u.uploader_name <> ""
          ORDER BY u.uploader_name ASC'
     );
     $uploaderListStmt->execute(['event_id' => $eventPk]);
     $uploaderOptions = $uploaderListStmt->fetchAll(PDO::FETCH_COLUMN);
 
     $sql = 'SELECT
+            u.id,
             u.drive_file_id,
+            u.original_filename,
             u.comment,
             u.uploader_name,
             u.created_at,
             u.captured_at
         FROM uploads u
-        WHERE u.event_id = :event_id';
+        WHERE u.event_id = :event_id AND u.active = 1';
     $params = ['event_id' => $eventPk];
     if ($uploaderFilter !== '') {
         $sql .= ' AND u.uploader_name = :uploader_name';
@@ -60,7 +65,7 @@ try {
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
-    $uploads = $stmt->fetchAll();
+    $uploads = app_mark_suspected_duplicates($stmt->fetchAll());
 } catch (Throwable $e) {
     http_response_code(500);
     exit('Server error while loading images.');
@@ -115,6 +120,16 @@ try {
             </div>
         </section>
 
+        <?php if ($deleteOkMessage !== ''): ?>
+            <section class="panel">
+                <p class="notice ok"><?= app_h($deleteOkMessage) ?></p>
+            </section>
+        <?php elseif ($deleteErrorMessage !== ''): ?>
+            <section class="panel">
+                <p class="notice err"><?= app_h($deleteErrorMessage) ?></p>
+            </section>
+        <?php endif; ?>
+
         <?php if (count($uploads) === 0): ?>
             <section class="panel">
                 <p class="meta"><?= app_h(app_t('no_images', $lang)) ?></p>
@@ -123,6 +138,9 @@ try {
             <section class="grid">
                 <?php foreach ($uploads as $index => $upload): ?>
                     <?php
+                        $uploadId = (int)($upload['id'] ?? 0);
+                        $isDuplicate = !empty($upload['is_suspected_duplicate']);
+                        $originalFilename = trim((string)($upload['original_filename'] ?? ''));
                         $driveFileId = (string)($upload['drive_file_id'] ?? '');
                         $thumbnailUrl = $driveFileId === 'PENDING'
                             ? 'https://placehold.co/900x700/f2e8e3/8d6d63?text=Pending+Drive+Upload'
@@ -159,16 +177,24 @@ try {
                             }
                         }
                     ?>
-                    <article class="card">
+                    <article class="card<?= $isDuplicate ? ' is-duplicate' : '' ?>">
+                        <?php if ($isDuplicate): ?>
+                            <p class="duplicate-badge" title="<?= app_h(app_t('suspected_duplicate_hint', $lang)) ?>">
+                                <?= app_h(app_t('suspected_duplicate', $lang)) ?>
+                            </p>
+                        <?php endif; ?>
                         <button
                             type="button"
                             class="image-trigger"
                             data-index="<?= (int)$index ?>"
+                            data-upload-id="<?= $uploadId ?>"
                             data-full-url="<?= app_h($fullUrl) ?>"
                             data-comment="<?= app_h($comment) ?>"
                             data-uploader="<?= app_h($uploaderName) ?>"
                             data-uploaded-at="<?= app_h($createdAt) ?>"
                             data-captured-at="<?= app_h($capturedAt) ?>"
+                            data-filename="<?= app_h($originalFilename) ?>"
+                            data-is-duplicate="<?= $isDuplicate ? '1' : '0' ?>"
                             data-open-url="<?= app_h($openUrl) ?>"
                             aria-label="Open image"
                         >
@@ -190,6 +216,13 @@ try {
                                 <?= app_h(app_t('uploaded_at', $lang)) ?>: <?= app_h($createdAt) ?><br>
                                 <?= app_h(app_t('captured_at', $lang)) ?>: <?= app_h($capturedAt !== '' ? $capturedAt : app_t('unknown_captured_at', $lang)) ?>
                             </p>
+                            <div class="card-actions">
+                                <button
+                                    type="button"
+                                    class="btn btn-delete delete-trigger"
+                                    data-upload-id="<?= $uploadId ?>"
+                                ><?= app_h(app_t('delete_image', $lang)) ?></button>
+                            </div>
                         </div>
                     </article>
                 <?php endforeach; ?>
@@ -212,8 +245,31 @@ try {
                             <p id="lightboxCapturedAt" class="date"></p>
                         </div>
                         <div class="lightbox-meta-right">
+                            <button type="button" class="btn btn-delete" id="lightboxDeleteBtn"><?= app_h(app_t('delete_image', $lang)) ?></button>
                             <a id="lightboxOpenDrive" class="btn secondary" href="#" target="_blank" rel="noopener noreferrer"><?= app_h(app_t('open_image', $lang)) ?></a>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <form id="deleteForm" class="delete-form" method="post" action="delete.php">
+                <input type="hidden" name="event" value="<?= app_h($event) ?>">
+                <input type="hidden" name="exp" value="<?= app_h((string)$exp) ?>">
+                <input type="hidden" name="sig" value="<?= app_h($sig) ?>">
+                <input type="hidden" name="lang" value="<?= app_h($lang) ?>">
+                <input type="hidden" name="sort" value="<?= app_h($sort) ?>">
+                <input type="hidden" name="uploader" value="<?= app_h($uploaderFilter) ?>">
+                <input type="hidden" name="upload_id" id="deleteUploadId" value="">
+            </form>
+
+            <div id="deleteConfirmModal" class="confirm-modal">
+                <div class="confirm-modal-backdrop" data-close="1"></div>
+                <div class="confirm-modal-content" role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle">
+                    <h2 id="deleteConfirmTitle"><?= app_h(app_t('delete_confirm_title', $lang)) ?></h2>
+                    <p><?= app_h(app_t('delete_confirm_message', $lang)) ?></p>
+                    <div class="confirm-modal-actions">
+                        <button type="button" class="btn secondary" id="deleteConfirmCancel"><?= app_h(app_t('delete_confirm_no', $lang)) ?></button>
+                        <button type="button" class="btn danger" id="deleteConfirmYes"><?= app_h(app_t('delete_confirm_yes', $lang)) ?></button>
                     </div>
                 </div>
             </div>
@@ -225,9 +281,93 @@ try {
     </div>
     <script>
         (function () {
-            const items = Array.from(document.querySelectorAll('.image-trigger'));
+            const deleteForm = document.getElementById('deleteForm');
+            const deleteUploadId = document.getElementById('deleteUploadId');
+            const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+            const deleteConfirmYes = document.getElementById('deleteConfirmYes');
+            const deleteConfirmCancel = document.getElementById('deleteConfirmCancel');
             const lightbox = document.getElementById('lightbox');
-            if (!items.length || !lightbox) return;
+            let pendingDeleteUploadId = '';
+            let lightboxOpen = false;
+
+            if (deleteConfirmModal) {
+                document.body.appendChild(deleteConfirmModal);
+            }
+            if (deleteForm) {
+                document.body.appendChild(deleteForm);
+            }
+
+            function openDeleteConfirm(uploadId) {
+                const id = String(uploadId || '').trim();
+                if (!id || id === '0' || !deleteConfirmModal) {
+                    return;
+                }
+                pendingDeleteUploadId = id;
+                deleteConfirmModal.classList.add('is-open');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeDeleteConfirm() {
+                if (!deleteConfirmModal) {
+                    return;
+                }
+                deleteConfirmModal.classList.remove('is-open');
+                pendingDeleteUploadId = '';
+                if (!lightboxOpen) {
+                    document.body.style.overflow = '';
+                }
+            }
+
+            function submitDelete() {
+                if (!deleteForm || !deleteUploadId || pendingDeleteUploadId === '') {
+                    return;
+                }
+                deleteUploadId.value = pendingDeleteUploadId;
+                deleteForm.submit();
+            }
+
+            document.addEventListener('click', function (event) {
+                const deleteBtn = event.target.closest('.delete-trigger, #lightboxDeleteBtn');
+                if (deleteBtn) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    openDeleteConfirm(deleteBtn.dataset.uploadId || '');
+                    return;
+                }
+
+                if (deleteConfirmModal && deleteConfirmModal.classList.contains('is-open')) {
+                    const backdrop = event.target.closest('[data-close="1"]');
+                    if (backdrop && deleteConfirmModal.contains(backdrop)) {
+                        closeDeleteConfirm();
+                    }
+                }
+            });
+
+            if (deleteConfirmYes) {
+                deleteConfirmYes.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    submitDelete();
+                });
+            }
+
+            if (deleteConfirmCancel) {
+                deleteConfirmCancel.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    closeDeleteConfirm();
+                });
+            }
+
+            document.addEventListener('keydown', function (event) {
+                if (deleteConfirmModal && deleteConfirmModal.classList.contains('is-open') && event.key === 'Escape') {
+                    closeDeleteConfirm();
+                }
+            });
+
+            const items = Array.from(document.querySelectorAll('.image-trigger'));
+            if (!items.length || !lightbox) {
+                return;
+            }
+
             document.body.appendChild(lightbox);
 
             const lightboxImage = document.getElementById('lightboxImage');
@@ -236,6 +376,7 @@ try {
             const lightboxUploadedAt = document.getElementById('lightboxUploadedAt');
             const lightboxCapturedAt = document.getElementById('lightboxCapturedAt');
             const lightboxOpenDrive = document.getElementById('lightboxOpenDrive');
+            const lightboxDeleteBtn = document.getElementById('lightboxDeleteBtn');
             const prevBtn = document.getElementById('lightboxPrev');
             const nextBtn = document.getElementById('lightboxNext');
             let currentIndex = 0;
@@ -246,7 +387,9 @@ try {
 
             function render(index) {
                 const item = items[index];
-                if (!item) return;
+                if (!item) {
+                    return;
+                }
                 currentIndex = index;
                 lightboxImage.src = item.dataset.fullUrl || '';
                 lightboxComment.textContent = item.dataset.comment || ' ';
@@ -254,37 +397,48 @@ try {
                 lightboxUploadedAt.textContent = uploadedLabel + ': ' + (item.dataset.uploadedAt || '');
                 lightboxCapturedAt.textContent = capturedLabel + ': ' + (item.dataset.capturedAt || unknownCaptured);
                 lightboxOpenDrive.href = item.dataset.openUrl || '#';
+                if (lightboxDeleteBtn) {
+                    lightboxDeleteBtn.dataset.uploadId = item.dataset.uploadId || '';
+                }
             }
 
             function openAt(index) {
                 render(index);
                 lightbox.hidden = false;
                 lightbox.classList.add('is-open');
+                lightboxOpen = true;
                 document.body.style.overflow = 'hidden';
             }
 
             function closeLightbox() {
                 lightbox.hidden = true;
                 lightbox.classList.remove('is-open');
-                document.body.style.overflow = '';
+                lightboxOpen = false;
+                if (!deleteConfirmModal || !deleteConfirmModal.classList.contains('is-open')) {
+                    document.body.style.overflow = '';
+                }
                 lightboxImage.src = '';
             }
 
-            items.forEach((item, index) => {
+            items.forEach(function (item, index) {
                 item.addEventListener('click', function () {
                     openAt(index);
                 });
             });
 
-            prevBtn.addEventListener('click', function () {
-                const nextIndex = (currentIndex - 1 + items.length) % items.length;
-                render(nextIndex);
-            });
+            if (prevBtn) {
+                prevBtn.addEventListener('click', function () {
+                    const nextIndex = (currentIndex - 1 + items.length) % items.length;
+                    render(nextIndex);
+                });
+            }
 
-            nextBtn.addEventListener('click', function () {
-                const nextIndex = (currentIndex + 1) % items.length;
-                render(nextIndex);
-            });
+            if (nextBtn) {
+                nextBtn.addEventListener('click', function () {
+                    const nextIndex = (currentIndex + 1) % items.length;
+                    render(nextIndex);
+                });
+            }
 
             lightbox.addEventListener('click', function (event) {
                 const target = event.target;
@@ -294,10 +448,21 @@ try {
             });
 
             document.addEventListener('keydown', function (event) {
-                if (lightbox.hidden) return;
-                if (event.key === 'Escape') closeLightbox();
-                if (event.key === 'ArrowLeft') prevBtn.click();
-                if (event.key === 'ArrowRight') nextBtn.click();
+                if (deleteConfirmModal && deleteConfirmModal.classList.contains('is-open')) {
+                    return;
+                }
+                if (lightbox.hidden) {
+                    return;
+                }
+                if (event.key === 'Escape') {
+                    closeLightbox();
+                }
+                if (event.key === 'ArrowLeft' && prevBtn) {
+                    prevBtn.click();
+                }
+                if (event.key === 'ArrowRight' && nextBtn) {
+                    nextBtn.click();
+                }
             });
         })();
     </script>

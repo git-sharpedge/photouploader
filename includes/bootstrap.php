@@ -97,6 +97,15 @@ function app_t(string $key, string $lang): string
             'upload_link' => 'Ladda upp fler bilder',
             'footer_credit' => 'Skapad av Sharp Edge AB',
             'footer_contact' => 'Kontakt',
+            'suspected_duplicate' => 'Misstänkt dubblett',
+            'suspected_duplicate_hint' => 'Samma filnamn och tagetid som en annan bild',
+            'delete_image' => 'Ta bort bild',
+            'delete_confirm_title' => 'Ta bort bild?',
+            'delete_confirm_message' => 'Bilden flyttas till arkivet och döljs i galleriet.',
+            'delete_confirm_yes' => 'Ja, ta bort',
+            'delete_confirm_no' => 'Avbryt',
+            'delete_success' => 'Bilden har tagits bort.',
+            'delete_failed' => 'Kunde inte ta bort bilden.',
         ],
         'fr' => [
             'site_title_upload' => 'Télécharger des photos',
@@ -148,6 +157,15 @@ function app_t(string $key, string $lang): string
             'upload_link' => 'Télécharger plus de photos',
             'footer_credit' => 'Créé par Sharp Edge AB',
             'footer_contact' => 'Contact',
+            'suspected_duplicate' => 'Doublon suspect',
+            'suspected_duplicate_hint' => 'Meme nom de fichier et heure de prise qu une autre photo',
+            'delete_image' => 'Supprimer la photo',
+            'delete_confirm_title' => 'Supprimer la photo?',
+            'delete_confirm_message' => 'La photo sera deplacee vers les archives et masquee dans la galerie.',
+            'delete_confirm_yes' => 'Oui, supprimer',
+            'delete_confirm_no' => 'Annuler',
+            'delete_success' => 'La photo a ete supprimee.',
+            'delete_failed' => 'Impossible de supprimer la photo.',
         ],
         'en' => [
             'site_title_upload' => 'Upload photos',
@@ -199,6 +217,15 @@ function app_t(string $key, string $lang): string
             'upload_link' => 'Upload more photos',
             'footer_credit' => 'Created by Sharp Edge AB',
             'footer_contact' => 'Contact',
+            'suspected_duplicate' => 'Suspected duplicate',
+            'suspected_duplicate_hint' => 'Same filename and capture time as another photo',
+            'delete_image' => 'Delete photo',
+            'delete_confirm_title' => 'Delete photo?',
+            'delete_confirm_message' => 'The photo will be moved to the archive and hidden from the gallery.',
+            'delete_confirm_yes' => 'Yes, delete',
+            'delete_confirm_no' => 'Cancel',
+            'delete_success' => 'Photo deleted.',
+            'delete_failed' => 'Could not delete photo.',
         ],
     ];
 
@@ -257,6 +284,46 @@ function app_pdo(): PDO
 function app_build_url(string $path, array $params): string
 {
     return $path . '?' . http_build_query($params);
+}
+
+function app_upload_duplicate_key(string $filename, ?string $capturedAt): string
+{
+    $capturedAt = trim((string)$capturedAt);
+    if ($capturedAt === '') {
+        return '';
+    }
+
+    $base = strtolower(basename($filename));
+    if ($base === '') {
+        return '';
+    }
+
+    return $base . '|' . $capturedAt;
+}
+
+function app_mark_suspected_duplicates(array $uploads): array
+{
+    $counts = [];
+    foreach ($uploads as $upload) {
+        $key = app_upload_duplicate_key(
+            (string)($upload['original_filename'] ?? ''),
+            isset($upload['captured_at']) ? (string)$upload['captured_at'] : null
+        );
+        if ($key === '') {
+            continue;
+        }
+        $counts[$key] = ($counts[$key] ?? 0) + 1;
+    }
+
+    foreach ($uploads as $index => $upload) {
+        $key = app_upload_duplicate_key(
+            (string)($upload['original_filename'] ?? ''),
+            isset($upload['captured_at']) ? (string)$upload['captured_at'] : null
+        );
+        $uploads[$index]['is_suspected_duplicate'] = $key !== '' && ($counts[$key] ?? 0) > 1;
+    }
+
+    return $uploads;
 }
 
 function app_sanitize_theme_key(string $value): string

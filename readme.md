@@ -213,6 +213,15 @@ ALTER TABLE uploads
 
 CREATE INDEX IF NOT EXISTS idx_uploads_event_uploader
   ON uploads(event_id, uploader_name);
+
+ALTER TABLE uploads
+  ADD COLUMN IF NOT EXISTS active TINYINT(1) NOT NULL DEFAULT 1 AFTER captured_at;
+
+ALTER TABLE uploads
+  ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL DEFAULT NULL AFTER active;
+
+CREATE INDEX IF NOT EXISTS idx_uploads_event_active
+  ON uploads(event_id, active);
 ```
 
 Om din MariaDB-version inte stödjer `IF NOT EXISTS` för dessa satser, kör motsvarande via `information_schema`-kontroll.
